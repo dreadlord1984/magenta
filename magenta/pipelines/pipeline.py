@@ -1,52 +1,56 @@
-# Copyright 2016 Google Inc. All Rights Reserved.
+# Copyright 2019 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """For running data processing pipelines."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import abc
 import inspect
 import os.path
 
-# internal imports
+from magenta.pipelines import statistics
+import six
 import tensorflow as tf
 
-from magenta.pipelines import statistics
 
-
-class InvalidTypeSignatureException(Exception):
+class InvalidTypeSignatureError(Exception):
   """Thrown when `Pipeline.input_type` or `Pipeline.output_type` is not valid.
   """
   pass
 
 
-class InvalidStatisticsException(Exception):
+class InvalidStatisticsError(Exception):
   """Thrown when stats produced by a `Pipeline` are not valid."""
   pass
 
 
-class Key(object):
+class PipelineKey(object):
   """Represents a get operation on a Pipeline type signature.
 
   If a pipeline instance `my_pipeline` has `output_type`
-  {'key_1': Type1, 'key_2': Type2}, then Key(my_pipeline, 'key_1'),
-  represents the output type Type1. And likewise Key(my_pipeline, 'key_2')
-  represents Type2.
+  {'key_1': Type1, 'key_2': Type2}, then PipelineKey(my_pipeline, 'key_1'),
+  represents the output type Type1. And likewise
+  PipelineKey(my_pipeline, 'key_2') represents Type2.
 
-  Calling __getitem__ on a pipeline will return a Key instance.
-  So my_pipeline['key_1'] returns Key(my_pipeline, 'key_1'), and so on.
+  Calling __getitem__ on a pipeline will return a PipelineKey instance.
+  So my_pipeline['key_1'] returns PipelineKey(my_pipeline, 'key_1'), and so on.
 
-  Key objects are used for assembling a directed acyclic graph of Pipeline
-  instances. See dag_pipeline.py.
+  PipelineKey objects are used for assembling a directed acyclic graph of
+  Pipeline instances. See dag_pipeline.py.
   """
 
   def __init__(self, unit, key):
@@ -57,19 +61,19 @@ class Key(object):
           'Cannot take key %s of %s because output type %s is not a dictionary'
           % (key, unit, unit.output_type))
     if key not in unit.output_type:
-      raise KeyError('Key %s is not valid for %s with output type %s'
+      raise KeyError('PipelineKey %s is not valid for %s with output type %s'
                      % (key, unit, unit.output_type))
     self.key = key
     self.unit = unit
     self.output_type = unit.output_type[key]
 
   def __repr__(self):
-    return 'Key(%s, %s)' % (self.unit, self.key)
+    return 'PipelineKey(%s, %s)' % (self.unit, self.key)
 
 
 def _guarantee_dict(given, default_name):
   if not isinstance(given, dict):
-    return {default_name: dict}
+    return {default_name: list}
   return given
 
 
@@ -87,19 +91,19 @@ def _assert_valid_type_signature(type_sig, type_sig_name):
         exception descriptions.
 
   Raises:
-    InvalidTypeSignatureException: If `type_sig` is not valid.
+    InvalidTypeSignatureError: If `type_sig` is not valid.
   """
   if isinstance(type_sig, dict):
     for k, val in type_sig.items():
-      if not isinstance(k, basestring):
-        raise InvalidTypeSignatureException(
+      if not isinstance(k, six.string_types):
+        raise InvalidTypeSignatureError(
             '%s key %s must be a string.' % (type_sig_name, k))
       if not inspect.isclass(val):
-        raise InvalidTypeSignatureException(
+        raise InvalidTypeSignatureError(
             '%s %s at key %s must be a Python class.' % (type_sig_name, val, k))
   else:
     if not inspect.isclass(type_sig):
-      raise InvalidTypeSignatureException(
+      raise InvalidTypeSignatureError(
           '%s %s must be a Python class.' % (type_sig_name, type_sig))
 
 
@@ -113,12 +117,12 @@ class Pipeline(object):
   a list of transformed outputs, or a dictionary mapping names to lists of
   transformed outputs for each name.
 
-  The `get_stats` method returns any statistics that were collected during the
-  last call to `transform`. These statistics can give feedback about why any
+  The `get_stats` method returns any Statistics that were collected during the
+  last call to `transform`. These Statistics can give feedback about why any
   data was discarded and what the input data is like.
 
   `Pipeline` implementers should call `_set_stats` from within `transform` to
-  set the statistics that will be returned by the next call to `get_stats`.
+  set the Statistics that will be returned by the next call to `get_stats`.
   """
 
   __metaclass__ = abc.ABCMeta
@@ -137,8 +141,8 @@ class Pipeline(object):
     signature {'hello': str, 'number': int})
 
     `Pipeline` instances have (preferably unique) string names. These names act
-    as name spaces for the statistics produced by them. The `get_stats` method
-    will automatically prepend `name` to all of the statistics names before
+    as name spaces for the Statistics produced by them. The `get_stats` method
+    will automatically prepend `name` to all of the Statistics names before
     returning them.
 
     Args:
@@ -155,7 +159,7 @@ class Pipeline(object):
       # This will get the name of the subclass, not "Pipeline".
       self._name = type(self).__name__
     else:
-      assert isinstance(name, basestring)
+      assert isinstance(name, six.string_types)
       self._name = name
     _assert_valid_type_signature(input_type, 'input_type')
     _assert_valid_type_signature(output_type, 'output_type')
@@ -164,7 +168,7 @@ class Pipeline(object):
     self._stats = []
 
   def __getitem__(self, key):
-    return Key(self, key)
+    return PipelineKey(self, key)
 
   @property
   def input_type(self):
@@ -218,7 +222,7 @@ class Pipeline(object):
     pass
 
   def _set_stats(self, stats):
-    """Overwrites the current statistics returned by `get_stats`.
+    """Overwrites the current Statistics returned by `get_stats`.
 
     Implementers of Pipeline should call `_set_stats` from within `transform`.
 
@@ -226,28 +230,28 @@ class Pipeline(object):
       stats: An iterable of Statistic objects.
 
     Raises:
-      InvalidStatisticsException: If `stats` is not iterable, or if each
-          statistic is not a `Statistic` instance.
+      InvalidStatisticsError: If `stats` is not iterable, or if any
+          object in the list is not a `Statistic` instance.
     """
     if not hasattr(stats, '__iter__'):
-      raise InvalidStatisticsException(
+      raise InvalidStatisticsError(
           'Expecting iterable, got type %s' % type(stats))
     self._stats = [self._prepend_name(stat) for stat in stats]
 
   def _prepend_name(self, stat):
     """Returns a copy of `stat` with `self.name` prepended to `stat.name`."""
     if not isinstance(stat, statistics.Statistic):
-      raise InvalidStatisticsException(
+      raise InvalidStatisticsError(
           'Expecting Statistic object, got %s' % stat)
     stat_copy = stat.copy()
     stat_copy.name = self._name + '_' + stat_copy.name
     return stat_copy
 
   def get_stats(self):
-    """Returns statistics about pipeline runs.
+    """Returns Statistics about pipeline runs.
 
     Call `get_stats` after each call to `transform`.
-    `transform` computes statistics which will be returned here.
+    `transform` computes Statistics which will be returned here.
 
     Returns:
       A list of `Statistic` objects.
@@ -313,7 +317,7 @@ def run_pipeline_serial(pipeline,
                         output_file_base=None):
   """Runs the a pipeline on a data source and writes to a directory.
 
-  Run the the pipeline on each input from the iterator one at a time.
+  Run the pipeline on each input from the iterator one at a time.
   A file will be written to `output_dir` for each dataset name specified
   by the pipeline. pipeline.transform is called on each input and the
   results are aggregated into their correct datasets.
@@ -361,8 +365,8 @@ def run_pipeline_serial(pipeline,
                                  '%s_%s.tfrecord' % (output_file_base, name))
                     for name in output_names]
 
-  writers = dict([(name, tf.python_io.TFRecordWriter(path))
-                  for name, path in zip(output_names, output_paths)])
+  writers = dict((name, tf.python_io.TFRecordWriter(path))
+                 for name, path in zip(output_names, output_paths))
 
   total_inputs = 0
   total_outputs = 0
@@ -370,10 +374,10 @@ def run_pipeline_serial(pipeline,
   for input_ in input_iterator:
     total_inputs += 1
     for name, outputs in _guarantee_dict(pipeline.transform(input_),
-                                         output_names[0]).items():
-      for output in outputs:
+                                         list(output_names)[0]).items():
+      for output in outputs:  # pylint:disable=not-an-iterable
         writers[name].write(output.SerializeToString())
-        total_outputs += 1
+      total_outputs += len(outputs)
     stats = statistics.merge_statistics(stats + pipeline.get_stats())
     if total_inputs % 500 == 0:
       tf.logging.info('Processed %d inputs so far. Produced %d outputs.',
@@ -401,15 +405,14 @@ def load_pipeline(pipeline, input_iterator):
     dictionary mapping dataset names to lists of objects. Each name acts
     as a bucket where outputs are aggregated.
   """
-  aggregated_outputs = dict(
-      [(name, []) for name in pipeline.output_type_as_dict])
+  aggregated_outputs = dict((name, []) for name in pipeline.output_type_as_dict)
   total_inputs = 0
   total_outputs = 0
   stats = []
   for input_object in input_iterator:
     total_inputs += 1
     outputs = _guarantee_dict(pipeline.transform(input_object),
-                              aggregated_outputs.keys()[0])
+                              list(aggregated_outputs.keys())[0])
     for name, output_list in outputs.items():
       aggregated_outputs[name].extend(output_list)
       total_outputs += len(output_list)

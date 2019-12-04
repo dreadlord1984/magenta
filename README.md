@@ -1,108 +1,132 @@
-<img src="http://magenta.tensorflow.org/assets/magenta-logo.png" height="75">
 
-**Magenta** is a project from the [Google Brain team](https://research.google.com/teams/brain/)
-that asks: Can we use machine learning to create compelling art and music? If
-so, how? If not, why not?  We’ll use [TensorFlow](https://www.tensorflow.org),
-and we’ll release our models and tools in open source on this GitHub. We’ll also
-post demos, tutorial blog postings, and technical papers. Soon we’ll begin
-accepting code contributions from the community at large. If you’d like to keep
-up on Magenta as it grows, you can read our [blog](http://magenta.tensorflow.org) and or join our
-[discussion group](http://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
+<img src="magenta-logo-bg.png" height="75">
+
+[![Build Status](https://travis-ci.org/tensorflow/magenta.svg?branch=master)](https://travis-ci.org/tensorflow/magenta)
+ [![PyPI version](https://badge.fury.io/py/magenta.svg)](https://badge.fury.io/py/magenta)
+
+**Magenta** is a research project exploring the role of machine learning
+in the process of creating art and music.  Primarily this
+involves developing new deep learning and reinforcement learning
+algorithms for generating songs, images, drawings, and other materials. But it's also
+an exploration in building smart tools and interfaces that allow
+artists and musicians to extend (not replace!) their processes using
+these models.  Magenta was started by some researchers and engineers
+from the [Google Brain team](https://research.google.com/teams/brain/),
+but many others have contributed significantly to the project. We use
+[TensorFlow](https://www.tensorflow.org) and release our models and
+tools in open source on this GitHub.  If you’d like to learn more
+about Magenta, check out our [blog](https://magenta.tensorflow.org),
+where we post technical details.  You can also join our [discussion
+group](https://groups.google.com/a/tensorflow.org/forum/#!forum/magenta-discuss).
+
+This is the home for our Python TensorFlow library. To use our models in the browser with [TensorFlow.js](https://js.tensorflow.org/), head to the [Magenta.js](https://github.com/tensorflow/magenta-js) repository.
+
+## Getting Started
+
+* [Installation](#installation)
+* [Using Magenta](#using-magenta)
+* [Playing a MIDI Instrument](#playing-a-midi-instrument)
+* [Development Environment (Advanced)](#development-environment)
 
 ## Installation
 
-### Docker
-The easiest way to get started with Magenta is to use our Docker container.
-First, [install Docker](https://docs.docker.com/engine/installation/). Next, run
-this command:
+Magenta maintains a [pip package](https://pypi.python.org/pypi/magenta) for easy
+installation. We recommend using Anaconda to install it, but it can work in any
+standard Python environment. We support both Python 2 (>= 2.7) and Python 3 (>= 3.5).
+These instructions will assume you are using Anaconda.
 
-```docker run -it -p 6006:6006 -v /tmp/magenta:/magenta-data tensorflow/magenta```
+### Automated Install (w/ Anaconda)
 
-This will start a shell in a directory with all Magenta components compiled and
-ready to run. It will also map port 6006 of the host machine to the container so
-you can view TensorBoard servers that run within the container.
+If you are running Mac OS X or Ubuntu, you can try using our automated
+installation script. Just paste the following command into your terminal.
 
-This also maps the directory ```/tmp/magenta``` on the host machine to
-```/magenta-data``` within the Docker session. **WARNING**: only data saved in
-```/magenta-data``` will persist across sessions.
+```bash
+curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/magenta-install.sh > /tmp/magenta-install.sh
+bash /tmp/magenta-install.sh
+```
 
-One downside to the Docker container is that it is isolated from the host. If
-you want to listen to a generated MIDI file, you'll need to copy it to the host
-machine. Similarly, because our
-[MIDI instrument interface](magenta/interfaces/midi) requires access to the host
-MIDI port, it will not work within the Docker container. You'll need to use the
-full Development Environment.
+After the script completes, open a new terminal window so the environment
+variable changes take effect.
 
-Note: Our docker image is also available at ```gcr.io/tensorflow/magenta```.
+The Magenta libraries are now available for use within Python programs and
+Jupyter notebooks, and the Magenta scripts are installed in your path!
 
-### Development Environment
-If you want to develop on Magenta, use our
-[MIDI instrument interface](magenta/interfaces/midi) or preview MIDI files
-without copying them out out of the Docker environment, you'll need to set up
-the full Development Environment.
+Note that you will need to run `source activate magenta` to use Magenta every
+time you open a new terminal window.
 
-The installation has three components. You are going to need Bazel to build packages, TensorFlow to run models, and an up-to-date version of this repository.
+### Manual Install (w/o Anaconda)
+
+If the automated script fails for any reason, or you'd prefer to install by
+hand, do the following steps.
+
+Install the Magenta pip package:
+
+```bash
+pip install magenta
+```
+
+**NOTE**: In order to install the `rtmidi` package that we depend on, you may need to install headers for some sound libraries. On Linux, this command should install the necessary packages:
+
+```bash
+sudo apt-get install build-essential libasound2-dev libjack-dev
+```
+
+The Magenta libraries are now available for use within Python programs and
+Jupyter notebooks, and the Magenta scripts are installed in your path!
+
+## Using Magenta
+
+You can now train our various models and use them to generate music, audio, and images. You can
+find instructions for each of the models by exploring the [models directory](magenta/models).
+
+To get started, create your own melodies with TensorFlow using one of the various configurations of our [Melody RNN](magenta/models/melody_rnn) model; a recurrent neural network for predicting melodies.
+
+## Playing a MIDI Instrument
+
+After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
+
+We also have created several [demos](https://github.com/tensorflow/magenta-demos) that provide a UI for this interface, making it easier to use (e.g., the browser-based [AI Jam](https://github.com/tensorflow/magenta-demos/tree/master/ai-jam-js)).
+
+## Development Environment
+If you want to develop on Magenta, you'll need to set up the full Development Environment.
 
 First, clone this repository:
 
-```git clone https://github.com/tensorflow/magenta.git```
-
-Next, [install Bazel](http://www.bazel.io/docs/install.html). We recommend the
-latest version, currently 0.3.1.
-
-Finally,
-[install TensorFlow](https://www.tensorflow.org/versions/master/get_started/os_setup.html).
-We require version 0.10 or later.
-
-Also, verify that your environment uses Python 2.7. We do aim to support
-Python 3 eventually, but it is currently experimental.
-
-After that's done, run the tests with this command:
-
-```bazel test //magenta/...```
-
-## Building your Dataset
-Now that you have a working copy of Magenta, let's build your first MIDI dataset. We do this by creating a directory of MIDI files and converting them into NoteSequences. If you don't have any MIDIs handy, you can find some [here](http://www.midiworld.com/files/142/) from MidiWorld.
-
-Build and run the script. Warnings may be printed by the MIDI parser if it encounters a malformed MIDI file but these can be safely ignored. MIDI files that cannot be parsed will be skipped.
-
-```
-MIDI_DIRECTORY=<folder containing MIDI files. can have child folders.>
-
-# TFRecord file that will contain NoteSequence protocol buffers.
-SEQUENCES_TFRECORD=/tmp/notesequences.tfrecord
-
-bazel run //magenta/scripts:convert_midi_dir_to_note_sequences -- \
---midi_dir=$MIDI_DIRECTORY \
---output_file=$SEQUENCES_TFRECORD \
---recursive
+```bash
+git clone https://github.com/tensorflow/magenta.git
 ```
 
-Note: To build and run in separate commands, run
+Next, install the dependencies by changing to the base directory and executing the setup command:
 
-```
-bazel build //magenta/scripts:convert_midi_dir_to_note_sequences
-
-./bazel-bin/magenta/scripts/convert_midi_dir_to_note_sequences \
---midi_dir=$MIDI_DIRECTORY \
---output_file=$SEQUENCES_TFRECORD \
---recursive
+```bash
+pip install -e .
 ```
 
-___Data processing APIs___
+You can now edit the files and run scripts by calling Python as usual. For example, this is how you would run the `melody_rnn_generate` script from the base directory:
 
-If you are interested in adding your own model, please take a look at how we create our datasets under the hood: [Data processing in Magenta](https://github.com/tensorflow/magenta/blob/master/magenta/pipelines)
+```bash
+python magenta/models/melody_rnn/melody_rnn_generate --config=...
+```
 
-## Generating MIDI
+You can also install the (potentially modified) package with:
 
-To create your own melodies with TensorFlow, train a model on the dataset you built above and then use it to generate new sequences. Select a model below for further instructions.
+```bash
+pip install .
+```
 
-**[Basic RNN](magenta/models/basic_rnn)**: A simple recurrent neural network for predicting melodies.
+Before creating a pull request, please also test your changes with:
 
-**[Lookback RNN](magenta/models/lookback_rnn)**: A recurrent neural network for predicting melodies that uses custom inputs and labels.
+```bash
+pip install pytest-pylint
+pytest
+```
 
-**[Attention RNN](magenta/models/attention_rnn)**: A recurrent neural network for predicting melodies that uses attention.
+## PIP Release
 
-## Using a MIDI Instrument
+To build a new version for pip, bump the version and then run:
 
-After you've trained one of the models above, you can use our [MIDI interface](magenta/interfaces/midi) to play with it interactively.
+```bash
+python setup.py test
+python setup.py bdist_wheel --universal
+twine upload dist/magenta-N.N.N-py2.py3-none-any.whl
+```

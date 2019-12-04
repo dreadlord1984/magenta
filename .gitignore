@@ -1,2 +1,11 @@
 *.pyc
-/bazel-*
+*.egg
+.eggs/
+.ipynb_checkpoints/
+*.swp
+*.egg-info/
+.cache/
+build/
+*.DS_Store
+.vscode/*
+.idea/
